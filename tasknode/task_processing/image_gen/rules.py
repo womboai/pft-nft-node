@@ -10,21 +10,19 @@ from nodetools.models.models import (
     RequestRule,
     ResponseRule,
     ResponseGenerator,
-    Dependencies
+    Dependencies,
 )
 
+from tasknode.task_processing.constants import IMAGE_GEN_COST
 from tasknode.task_processing.image_gen.patterns import IMAGE_RESPONSE_PATTERN
 from tasknode.task_processing.image_gen.response import ImageResponseGenerator
 from tasknode.task_processing.utils import regex_to_sql_pattern
 
+
 class ImageGenRule(RequestRule):
     """Pure business logic for queuing image generation tasks."""
 
-    async def validate(
-            self,
-            tx: Dict[str, Any],
-            dependencies: Dependencies
-        ) -> bool:
+    async def validate(self, tx: Dict[str, Any], dependencies: Dependencies) -> bool:
         """
         Validate business rules for a verification response.
         Pattern matching is handled by TransactionGraph.
@@ -32,20 +30,19 @@ class ImageGenRule(RequestRule):
         1. Be addressed to the node address
         2. Must have sent 1 PFT
         """
-        if tx.get('destination') != dependencies.node_config.node_address:
+        if tx.get("destination") != dependencies.node_config.node_address:
             return False
-        # TODO: add condition that the tx delivered at least 1 PFT to the wallet
-        pft_amount = tx.get('pft_absolute_amount', 0)
+        pft_amount = tx.get("pft_absolute_amount", 0)
         logger.debug(f"Received {pft_amount} PFT for an image generation request")
-        if pft_amount < 1:
+        if pft_amount < IMAGE_GEN_COST:
             return False
 
         return True
 
     async def find_response(
-            self,
-            request_tx: Dict[str, Any],
-        ) -> Optional[ResponseQuery]:
+        self,
+        request_tx: Dict[str, Any],
+    ) -> Optional[ResponseQuery]:
         """Get query information for finding a image generation response."""
         query = """
             SELECT * FROM find_transaction_response(
@@ -57,17 +54,20 @@ class ImageGenRule(RequestRule):
                 require_after_request := TRUE
             );
         """
-        
+
         # NOTE: look for image responses by the node
         params = {
-            'account': request_tx['account'],
-            'destination': request_tx['destination'],
-            'request_time': request_tx['close_time_iso'],
-            'response_memo_type': request_tx['memo_type'],
-            'response_memo_data': regex_to_sql_pattern(IMAGE_RESPONSE_PATTERN.memo_data)
+            "account": request_tx["account"],
+            "destination": request_tx["destination"],
+            "request_time": request_tx["close_time_iso"],
+            "response_memo_type": request_tx["memo_type"],
+            "response_memo_data": regex_to_sql_pattern(
+                IMAGE_RESPONSE_PATTERN.memo_data
+            ),
         }
-            
+
         return ResponseQuery(query=query, params=params)
+
 
 class ImageGenResponseRule(ResponseRule):
     """Pure business logic for handling returning generated images"""
@@ -81,5 +81,3 @@ class ImageGenResponseRule(ResponseRule):
             node_config=dependencies.node_config,
             generic_pft_utilities=dependencies.generic_pft_utilities,
         )
-
-
