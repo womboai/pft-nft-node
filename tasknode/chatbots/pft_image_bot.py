@@ -184,8 +184,8 @@ class ImageNodeDiscordBot(discord.Client):
 1. /pf_new_wallet: Generate a new XRP wallet. You need to fund via Coinbase etc to continue
 2. /pf_store_seed: Stores wallet seeds for transactions through this bot.
 
-### Transaction
-1. /pf_gen_image: Open a transaction form to send PFT tokens with a memo.
+### Image Generation 
+1. /pf_gen_image: Open a form to generate an image using {IMAGE_GEN_COST} PFT.
 
 Note: XRP wallets need {global_constants.MIN_XRP_BALANCE} XRP to transact.
 We recommend funding with a bit more to cover ongoing transaction fees.
