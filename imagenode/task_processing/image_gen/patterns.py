@@ -1,7 +1,7 @@
 from nodetools.models.models import MemoPattern
 import re
-from tasknode.task_processing.constants import TaskType
-from tasknode.task_processing.patterns import TASK_ID_PATTERN
+from imagenode.task_processing.constants import TaskType
+from imagenode.task_processing.patterns import TASK_ID_PATTERN
 
 
 IMAGE_GEN_PATTERN = MemoPattern(

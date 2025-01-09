@@ -1,5 +1,5 @@
 """
-This module defines the business logic rules for processing TaskNode XRPL transactions.
+This module defines the business logic rules for processing imagenode XRPL transactions.
 There are two distinct layers of validation:
 
 1. Pattern Matching (handled by TransactionGraph):
@@ -42,11 +42,11 @@ from nodetools.models.models import (
 )
 
 # Task node imports
-from tasknode.task_processing.image_gen.patterns import (
+from imagenode.task_processing.image_gen.patterns import (
     IMAGE_GEN_PATTERN,
     IMAGE_RESPONSE_PATTERN,
 )
-from tasknode.task_processing.image_gen.rules import ImageGenResponseRule, ImageGenRule
+from imagenode.task_processing.image_gen.rules import ImageGenResponseRule, ImageGenRule
 
 ##############################################################################
 ############################## MEMO PATTERNS #################################

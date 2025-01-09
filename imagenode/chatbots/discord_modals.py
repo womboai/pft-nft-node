@@ -5,14 +5,14 @@ from decimal import Decimal
 from xrpl.wallet import Wallet
 from typing import TYPE_CHECKING
 from loguru import logger
-from tasknode.task_processing.constants import (
+from imagenode.task_processing.constants import (
     IMAGE_GEN_COST,
 )
 import nodetools.configuration.constants as global_constants
 import traceback
 
 if TYPE_CHECKING:
-    from tasknode.chatbots.pft_image_bot import ImageNodeDiscordBot
+    from imagenode.chatbots.pft_image_bot import ImageNodeDiscordBot
 
 
 class WalletInfoModal(discord.ui.Modal, title="New XRP Wallet"):
@@ -160,14 +160,14 @@ class PFTImageGenModal(
 #         seed: str,
 #         username: str,
 #         client_instance: "ImageNodeDiscordBot",
-#         tasknode_utilities: TaskNodeUtilities,
+#         imagenode_utilities: imagenodeUtilities,
 #         ephemeral_setting: bool = True,
 #     ):
 #         super().__init__(title="Update Google Doc Link")
 #         self.seed = seed
 #         self.username = username
 #         self.client: "ImageNodeDiscordBot" = client_instance
-#         self.tasknode_utilities = tasknode_utilities
+#         self.imagenode_utilities = imagenode_utilities
 #         self.ephemeral_setting = ephemeral_setting
 #
 #     google_doc_link = discord.ui.TextInput(
@@ -197,7 +197,7 @@ class PFTImageGenModal(
 #                 content="Sending encrypted google doc link to node..."
 #             )
 #
-#             await self.tasknode_utilities.discord__update_google_doc_link(
+#             await self.imagenode_utilities.discord__update_google_doc_link(
 #                 user_seed=self.seed,
 #                 google_doc_link=self.google_doc_link.value,
 #                 username=self.username,
@@ -213,4 +213,3 @@ class PFTImageGenModal(
 #                 f"An error occurred during update: {str(e)}",
 #                 ephemeral=self.ephemeral_setting,
 #             )
-

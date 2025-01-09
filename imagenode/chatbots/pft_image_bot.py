@@ -21,13 +21,13 @@ from nodetools.performance.monitor import PerformanceMonitor
 from nodetools.container.service_container import ServiceContainer
 from nodetools.protocols.generic_pft_utilities import Wallet
 
-# tasknode imports
-from tasknode.task_processing.constants import (
+# imagenode imports
+from imagenode.task_processing.constants import (
     DISCORD_SUPER_USER_IDS,
     IMAGE_GEN_COST,
 )
-from tasknode.task_processing.core_business_logic import TaskManagementRules
-from tasknode.chatbots.discord_modals import (
+from imagenode.task_processing.core_business_logic import TaskManagementRules
+from imagenode.chatbots.discord_modals import (
     SeedModal,
     PFTImageGenModal,
     WalletInfoModal,

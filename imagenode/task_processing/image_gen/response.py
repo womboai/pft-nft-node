@@ -11,7 +11,7 @@ from nodetools.models.models import (
 )
 
 # Task node imports
-from tasknode.task_processing.constants import TaskType
+from imagenode.task_processing.constants import TaskType
 
 # NodeTools imports
 from nodetools.configuration.configuration import NodeConfig
@@ -20,7 +20,7 @@ from nodetools.protocols.generic_pft_utilities import GenericPFTUtilities
 # Custom image generation imports
 import fal_client
 
-from tasknode.task_processing.ipfs import pin_by_url
+from imagenode.task_processing.ipfs import pin_by_url
 
 
 class ImageResponseGenerator(ResponseGenerator):

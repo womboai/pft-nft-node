@@ -13,10 +13,10 @@ from nodetools.models.models import (
     Dependencies,
 )
 
-from tasknode.task_processing.constants import IMAGE_GEN_COST
-from tasknode.task_processing.image_gen.patterns import IMAGE_RESPONSE_PATTERN
-from tasknode.task_processing.image_gen.response import ImageResponseGenerator
-from tasknode.task_processing.utils import regex_to_sql_pattern
+from imagenode.task_processing.constants import IMAGE_GEN_COST
+from imagenode.task_processing.image_gen.patterns import IMAGE_RESPONSE_PATTERN
+from imagenode.task_processing.image_gen.response import ImageResponseGenerator
+from imagenode.task_processing.utils import regex_to_sql_pattern
 
 
 class ImageGenRule(RequestRule):
