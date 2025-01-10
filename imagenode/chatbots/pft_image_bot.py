@@ -442,7 +442,6 @@ We recommend funding with a bit more to cover ongoing transaction fees.
     def format_notification(self, tx: Dict[str, Any]) -> str:
         """Format the reviewing result for Discord"""
 
-        # TODO: move this logic of parsing image into its own method
         url = self.network_config.explorer_tx_url_mask.format(hash=tx["hash"])
 
         return (
