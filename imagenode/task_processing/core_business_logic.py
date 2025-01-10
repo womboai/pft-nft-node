@@ -18,10 +18,6 @@ from imagenode.task_processing.image_gen.rules import ImageGenResponseRule, Imag
 ##############################################################################
 
 # System memo patterns
-INITIATION_RITE_PATTERN = MemoPattern(memo_type=SystemMemoType.INITIATION_RITE.value)
-INITIATION_REWARD_PATTERN = MemoPattern(
-    memo_type=SystemMemoType.INITIATION_REWARD.value
-)
 HANDSHAKE_PATTERN = MemoPattern(memo_type=SystemMemoType.HANDSHAKE.value)
 GOOGLE_DOC_LINK_PATTERN = MemoPattern(
     memo_type=SystemMemoType.GOOGLE_DOC_CONTEXT_LINK.value
@@ -33,11 +29,11 @@ GOOGLE_DOC_LINK_PATTERN = MemoPattern(
 ##########################################################################
 
 
-class TaskManagementRules(BusinessLogicProvider):
-    """Business logic for task management"""
+class ImageGenerationRules(BusinessLogicProvider):
+    """Business logic for image generation"""
 
     @classmethod
-    def create(cls) -> "TaskManagementRules":
+    def create(cls) -> "ImageGenerationRules":
         """Factory function to create all business logic components"""
         # Setup transaction graph
         graph = InteractionGraph()

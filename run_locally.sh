@@ -3,6 +3,11 @@
 TAG=$(date +'%Y%m%d%H%M%S')
 IMAGE="imagenode"
 
+echo "Deleting imagenode container"
+docker-compose stop node 
+docker-compose rm -f node 
+
+
 export DOCKER_BUILDKIT=1
 
 . ./.env

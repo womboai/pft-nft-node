@@ -24,8 +24,9 @@ from nodetools.protocols.generic_pft_utilities import Wallet
 from imagenode.task_processing.constants import (
     DISCORD_SUPER_USER_IDS,
     IMAGE_GEN_COST,
+    TaskType,
 )
-from imagenode.task_processing.core_business_logic import TaskManagementRules
+from imagenode.task_processing.core_business_logic import ImageGenerationRules
 from imagenode.chatbots.discord_modals import (
     SeedModal,
     PFTImageGenModal,
@@ -418,6 +419,7 @@ We recommend funding with a bit more to cover ongoing transaction fees.
             try:
                 result = await self.notification_queue.get()
                 message = self.format_notification(result)
+
                 await channel.send(message)
             except Exception as e:
                 logger.error(f"Error processing notification: {str(e)}")
@@ -425,8 +427,21 @@ We recommend funding with a bit more to cover ongoing transaction fees.
 
             await asyncio.sleep(0.5)  # Prevent spam
 
+    def parse_possible_image(self, tx: Dict[str, Any]) -> str:
+        hash: str | None = None
+        # NOTE: this is highly dependent on the IMAGE RESPONSE format
+        if TaskType.IMAGE_GEN_RESPONSE.value in tx["memo_data"]:
+            hash = tx["memo_data"].split("ipfs hash: ")[1].strip("`")
+
+        image_string = (
+            "" if hash is None else f"Image: https://gateway.pinata.cloud/ipfs/{hash}"
+        )
+
+        return image_string
+
     def format_notification(self, tx: Dict[str, Any]) -> str:
         """Format the reviewing result for Discord"""
+
         url = self.network_config.explorer_tx_url_mask.format(hash=tx["hash"])
 
         return (
@@ -436,7 +451,8 @@ We recommend funding with a bit more to cover ongoing transaction fees.
             f"Memo Type: `{tx['memo_type']}`\n"
             f"Memo Data: `{tx['memo_data']}`\n"
             f"PFT: {tx.get('pft_absolute_amount', 0)}\n"
-            f"URL: {url}"
+            f"URL: {url}\n"
+            f"{self.parse_possible_image(tx)}"
         )
 
     async def generate_basic_balance_info_string(
@@ -526,7 +542,7 @@ def main():
         monitor = PerformanceMonitor(time_window=60)
 
         # Initialize business logic
-        business_logic = TaskManagementRules.create()
+        business_logic = ImageGenerationRules.create()
 
         # Initialize NodeTools services
         nodetools = ServiceContainer.initialize(

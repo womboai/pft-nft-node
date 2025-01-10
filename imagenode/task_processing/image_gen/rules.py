@@ -24,7 +24,7 @@ class ImageGenRule(RequestRule):
 
     async def validate(self, tx: Dict[str, Any], dependencies: Dependencies) -> bool:
         """
-        Validate business rules for a verification response.
+        Validate business rules for a image generation request.
         Pattern matching is handled by TransactionGraph.
         Must:
         1. Be addressed to the node address
