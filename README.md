@@ -12,6 +12,7 @@ nodetools setup-node
 # And initialize with correct discord and Node wallet credentials
 
 # Initialize the database with the correct tables
+# Note this requires a "postfiat" user with the permissions to create DB's
 nodetools init-db --create-db
 
 

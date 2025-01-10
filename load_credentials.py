@@ -11,6 +11,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+ENV = os.getenv("ENV")
+
 
 # NOTE: if you are running a reinstantiation of credentials, you must remove the "postfiatcreds" directory in your home dir
 # Otherwise the encryption password must be the same as the one used previously
@@ -84,6 +86,12 @@ class S3CredentialLoader:
             raise
 
 
+def load_credentials_locally(path: str) -> CredentialsConfig:
+    with open(path, "r") as json_file:
+        config_dict = json.load(json_file)
+        return CredentialsConfig(**config_dict)
+
+
 def rename_creds(
     creds: NodeCredentials, network_suffix: str, prefix: str
 ) -> Dict[str, Any]:
@@ -91,9 +99,8 @@ def rename_creds(
     Add rename creds to relevant credentials
 
     Args:
-        creds (NodeCredentials): Original credentials dictionary
-        node_name (str): Node name to use as prefix
-        network (str): The XRP network that is being used
+        network_suffix (str): the suffix appended onto discord bot secret
+        prefix (str): The prefix appended onto some cred names
 
     Returns:
         dict: New dictionary with renamed credentials
@@ -118,24 +125,16 @@ def rename_creds(
     return renamed_creds
 
 
-def setup_node_from_s3(bucket_name: str, credentials_path: str) -> str:
+def configure_node(config: CredentialsConfig) -> str:
     """
     Set up node configuration using credentials from S3
 
     Args:
-        bucket_name (str): Name of the S3 bucket
-        credentials_path (str): Path to credentials file in S3
+        config (CredentialsConfig): the config containing credentials and node configurations
     Returns:
         The encryption password
     """
-    logger.info("Starting PostFiat Node Setup (S3 Configuration)")
-
-    s3_loader = S3CredentialLoader(bucket_name, credentials_path)
-
     try:
-        # Load and validate configuration from S3
-        config = s3_loader.load_credentials_from_s3()
-
         cm = CredentialManager(config.encryption_password)
         node_name = config.node_config.node_name
 
@@ -176,15 +175,31 @@ def setup_node() -> str:
     Then returns the encryption password used to run the node.
     """
     try:
-        BUCKET_NAME = os.getenv("BUCKET_NAME")
-        CREDS_PATH = os.getenv("CREDENTIALS_PATH")
+        if ENV != "local":
+            BUCKET_NAME = os.getenv("BUCKET_NAME")
+            CREDS_PATH = os.getenv("CREDENTIALS_PATH")
 
-        if BUCKET_NAME is None or CREDS_PATH is None:
-            raise Exception(
-                "Either bucket name or credentials path were not set in ENV"
-            )
+            if BUCKET_NAME is None or CREDS_PATH is None:
+                raise Exception(
+                    "Either bucket name or credentials path were not set in environment"
+                )
+            logger.info("Starting PostFiat Node Setup (S3 Configuration)")
 
-        return setup_node_from_s3(BUCKET_NAME, CREDS_PATH)
+            s3_loader = S3CredentialLoader(BUCKET_NAME, CREDS_PATH)
+
+            # Load and validate configuration from S3
+            config = s3_loader.load_credentials_from_s3()
+        else:
+            CRED_FILE_NAME = os.getenv("CREDENTIALS_FILE")
+            if CRED_FILE_NAME is None:
+                raise Exception(
+                    "Credential file path is missing from environment when running with ENV=local"
+                )
+            logger.info("Starting PostFiat Node Setup (Local Configuration)")
+
+            config = load_credentials_locally(CRED_FILE_NAME)
+
+        return configure_node(config)
     except Exception as e:
         logger.error(f"Setup failed: {str(e)}")
         raise
