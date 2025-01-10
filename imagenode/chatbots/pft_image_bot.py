@@ -1,6 +1,5 @@
 # standard imports
 import asyncio
-from datetime import datetime, time
 from pathlib import Path
 from dataclasses import dataclass
 import traceback
@@ -33,10 +32,6 @@ from imagenode.chatbots.discord_modals import (
     WalletInfoModal,
 )
 
-from dotenv import load_dotenv
-
-load_dotenv()
-
 
 @dataclass
 class AccountInfo:
@@ -48,20 +43,6 @@ class AccountInfo:
     monthly_pft_avg: float = 0
     weekly_pft_avg: float = 0
     google_doc_link: Optional[str] = None
-
-
-@dataclass
-class DeathMarchSettings:
-    # Configuration
-    timezone: str
-    start_time: time  # Daily start time
-    end_time: time  # Daily end time
-    check_interval: int  # Minutes between check-ins
-    # Session-specific data
-    channel_id: Optional[int] = None
-    session_start: Optional[datetime] = None
-    session_end: Optional[datetime] = None
-    last_checkin: Optional[datetime] = None
 
 
 class ImageNodeDiscordBot(discord.Client):

@@ -1,38 +1,3 @@
-"""
-This module defines the business logic rules for processing imagenode XRPL transactions.
-There are two distinct layers of validation:
-
-1. Pattern Matching (handled by TransactionGraph):
-   - Validates the structure of memos (memo_type, memo_data, and memo_format)
-   - Matches transactions to their correct workflow type
-   - Determines valid response patterns for request transactions
-   - Example: Checking if a memo matches the pattern for a proposal (PROPOSED PF ___)
-
-2. Business Rule Validation (handled by Rule classes):
-   - Enforces content-specific rules (e.g., minimum length for initiation rites)
-   - Checking that a transaction is addressed to the node address or remembrancer address
-   - Example: Checking if an initiation rite contains meaningful content
-
-Example Flow:
-1. Transaction received: memo_type="2024-03-20_14:30", memo_data="REQUEST_POST_FIAT ___ Can i get a task to do?"
-2. TransactionGraph matches this to the "request_post_fiat" pattern
-3. RequestPostFiatRule then used to validate that the transaction was addressed to the node
-4. After validation, node will check against its database to see if the request already has a valid response, 
-    according to the valid_responses set in the TransactionGraph
-5. If no valid response is found, node will conclude that the request is unfulfilled and will call the response rule's generator
-6. The response rule's generator will generate a response
-7. The node will send the response back to the user and mark it for re-review
-8. The node will queue the response for re-review and confirm that the response was sent
-9. The node will then mark the request as fulfilled
-10. The interaction is complete
-
-When adding new rules, remember:
-- A request requires a single valid response 
-- Pattern matching logic belongs in create_business_logic()
-- Only transaction-specific validation logic belongs in InteractionRule.validate()
-- NodeTools ignores failed transactions by default, so explicitly checking for transaction success is not necessary
-"""
-
 from nodetools.configuration.constants import SystemMemoType
 from nodetools.models.models import (
     InteractionGraph,

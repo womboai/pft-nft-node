@@ -10,10 +10,9 @@ nodetools setup-node
 # No anthropic key
 # No remembrance wallet
 # And initialize with correct discord and Node wallet credentials
-# When initializing DB credentials ensure to use the same credentials as defined in the docker-compose.yml
 
 # Initialize the database with the correct tables
-nodetools init-db
+nodetools init-db --create-db
 
 
 # (OPTIONAL) if you want to update the credentials use
