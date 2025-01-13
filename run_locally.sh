@@ -1,9 +1,9 @@
 #!/bin/bash
 
 TAG=$(date +'%Y%m%d%H%M%S')
-IMAGE="imagenode"
+IMAGE="nftnode"
 
-echo "Deleting imagenode container"
+echo "Deleting nftnode container"
 docker-compose stop node 
 docker-compose rm -f node 
 
@@ -12,10 +12,10 @@ export DOCKER_BUILDKIT=1
 
 . ./.env
 
-echo "Building imagenode image..."
+echo "Building nftnode image..."
 docker build -t $IMAGE:$TAG  .
 
-echo "Runing imagenode container..."
+echo "Runing nftnode container..."
 TAG=$TAG IMAGE=$IMAGE docker-compose up -d node 
 
 echo "Here are the running containers"

@@ -10,7 +10,7 @@ def main():
     encryption_password = setup_node()
     network = "2" if os.getenv("ENV") != "production" else "1"
 
-    child = pexpect.spawn("python -m imagenode.chatbots.pft_image_bot")
+    child = pexpect.spawn("python -m nftnode.chatbots.pft_nft_bot")
 
     child.expect("Enter your password:")
     child.sendline(encryption_password)

@@ -7,11 +7,11 @@ from nodetools.models.models import (
 )
 
 # Task node imports
-from imagenode.task_processing.image_gen.patterns import (
-    IMAGE_GEN_PATTERN,
-    IMAGE_RESPONSE_PATTERN,
+from nftnode.nft_processing.nft_mint.patterns import (
+    NFT_MINT_PATTERN,
+    NFT_MINT_RESPONSE_PATTERN,
 )
-from imagenode.task_processing.image_gen.rules import ImageGenResponseRule, ImageGenRule
+from nftnode.nft_processing.nft_mint.rules import NFTMintResponseRule, NFTMintRule
 
 ##############################################################################
 ############################## MEMO PATTERNS #################################
@@ -29,11 +29,11 @@ GOOGLE_DOC_LINK_PATTERN = MemoPattern(
 ##########################################################################
 
 
-class ImageGenerationRules(BusinessLogicProvider):
-    """Business logic for image generation"""
+class NFTMintRules(BusinessLogicProvider):
+    """Business logic for NFT minting"""
 
     @classmethod
-    def create(cls) -> "ImageGenerationRules":
+    def create(cls) -> "NFTMintRules":
         """Factory function to create all business logic components"""
         # Setup transaction graph
         graph = InteractionGraph()
@@ -43,8 +43,8 @@ class ImageGenerationRules(BusinessLogicProvider):
             # "google_doc_link": GoogleDocLinkRule(),
             # "handshake_request": HandshakeRequestRule(),
             # "handshake_response": HandshakeResponseRule(),
-            "image_gen": ImageGenRule(),
-            "image_gen_response": ImageGenResponseRule(),
+            "nft_mint": NFTMintRule(),
+            "nft_mint_response": NFTMintResponseRule(),
         }
 
         # # Add google doc link patterns to graph
@@ -68,18 +68,18 @@ class ImageGenerationRules(BusinessLogicProvider):
         #     transaction_type=InteractionType.RESPONSE,
         # )
 
-        # Add image generation patterns to graph
+        # Add NFT minting patterns to graph
         graph.add_pattern(
-            pattern_id="image_gen",
-            memo_pattern=IMAGE_GEN_PATTERN,
+            pattern_id="nft_mint",
+            memo_pattern=NFT_MINT_PATTERN,
             transaction_type=InteractionType.REQUEST,
-            valid_responses={IMAGE_RESPONSE_PATTERN},
+            valid_responses={NFT_MINT_RESPONSE_PATTERN},
             notify=True,
         )
 
         graph.add_pattern(
-            pattern_id="image_gen_response",
-            memo_pattern=IMAGE_RESPONSE_PATTERN,
+            pattern_id="nft_mint_response",
+            memo_pattern=NFT_MINT_RESPONSE_PATTERN,
             transaction_type=InteractionType.RESPONSE,
             notify=True,
         )

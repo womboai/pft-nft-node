@@ -3,7 +3,7 @@
 ##########################################################################
 
 import re
-from imagenode.task_processing.patterns import TASK_ID_PATTERN
+from nftnode.nft_processing.patterns import TASK_ID_PATTERN
 
 
 def is_valid_task_id(memo_type: str) -> bool:

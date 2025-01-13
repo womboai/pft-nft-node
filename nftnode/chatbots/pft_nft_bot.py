@@ -20,16 +20,15 @@ from nodetools.performance.monitor import PerformanceMonitor
 from nodetools.container.service_container import ServiceContainer
 from nodetools.protocols.generic_pft_utilities import Wallet
 
-# imagenode imports
-from imagenode.task_processing.constants import (
+# nftnode imports
+from nftnode.nft_processing.constants import (
     DISCORD_SUPER_USER_IDS,
-    IMAGE_GEN_COST,
-    TaskType,
+    NFT_MINT_COST,
 )
-from imagenode.task_processing.core_business_logic import ImageGenerationRules
-from imagenode.chatbots.discord_modals import (
+from nftnode.nft_processing.core_business_logic import NFTMintRules
+from nftnode.chatbots.discord_modals import (
     SeedModal,
-    PFTImageGenModal,
+    PFTMintNFTModal,
     WalletInfoModal,
 )
 
@@ -46,7 +45,7 @@ class AccountInfo:
     google_doc_link: Optional[str] = None
 
 
-class ImageNodeDiscordBot(discord.Client):
+class NFTNodeDiscordBot(discord.Client):
 
     NON_EPHEMERAL_USERS = {427471329365590017}
 
@@ -62,7 +61,6 @@ class ImageNodeDiscordBot(discord.Client):
 
         self.user_seeds = {}
         self.tree = app_commands.CommandTree(self)
-        self.cache_timeout = 300  # seconds
         self.notification_queue: asyncio.Queue = nodetools.notification_queue
 
     # User is long lasting
@@ -166,8 +164,8 @@ class ImageNodeDiscordBot(discord.Client):
 1. /pf_new_wallet: Generate a new XRP wallet. You need to fund via Coinbase etc to continue
 2. /pf_store_seed: Stores wallet seeds for transactions through this bot.
 
-### Image Generation 
-1. /pf_gen_image: Open a form to generate an image using {IMAGE_GEN_COST} PFT.
+### NFT Minting 
+1. /pf_mint_nft: Open a form to mint an NFT using {NFT_MINT_COST} PFT.
 
 Note: XRP wallets need {global_constants.MIN_XRP_BALANCE} XRP to transact.
 We recommend funding with a bit more to cover ongoing transaction fees.
@@ -195,7 +193,7 @@ We recommend funding with a bit more to cover ongoing transaction fees.
             try:
                 seed = self.user_seeds[user_id]
                 logger.debug(
-                    f"ImageNodeDiscordBot.setup_hook.pf_my_wallet: Spawning wallet to fetch info for {interaction.user.name}"
+                    f"nftnodeDiscordBot.setup_hook.pf_my_wallet: Spawning wallet to fetch info for {interaction.user.name}"
                 )
                 wallet = self.generic_pft_utilities.spawn_wallet_from_seed(seed)
                 wallet_address = wallet.classic_address
@@ -271,7 +269,7 @@ We recommend funding with a bit more to cover ongoing transaction fees.
             except Exception as e:
                 error_message = f"An unexpected error occurred: {str(e)}. Please try again later or contact support if the issue persists."
                 logger.error(
-                    f"ImageNodeDiscordBot.pf_my_wallet: An error occurred: {str(e)}"
+                    f"nftnodeDiscordBot.pf_my_wallet: An error occurred: {str(e)}"
                 )
                 logger.error(traceback.format_exc())
                 await interaction.followup.send(error_message, ephemeral=True)
@@ -300,7 +298,7 @@ We recommend funding with a bit more to cover ongoing transaction fees.
                 )
             except Exception as e:
                 logger.error(
-                    f"ImageNodeDiscordBot.wallet_info: An error occurred: {str(e)}"
+                    f"nftnodeDiscordBot.wallet_info: An error occurred: {str(e)}"
                 )
                 logger.error(traceback.format_exc())
                 await interaction.response.send_message(
@@ -335,17 +333,17 @@ We recommend funding with a bit more to cover ongoing transaction fees.
             )
 
         @self.tree.command(
-            name="pf_gen_image",
-            description=f"Open form to generate an image (Requires {IMAGE_GEN_COST} PFT)",
+            name="pf_mint_nft",
+            description=f"Open form to mint an NFT (Requires {NFT_MINT_COST} PFT)",
             guild=guild,
         )
-        async def pf_gen_image(interaction: Interaction):
+        async def pf_mint_nft(interaction: Interaction):
             user_id = interaction.user.id
 
             # Check if the user has a stored seed
             if user_id not in self.user_seeds:
                 await interaction.response.send_message(
-                    "You must store a seed using /store_seed before generating image.",
+                    "You must store a seed using /store_seed before minting NFT.",
                     ephemeral=True,
                 )
                 return
@@ -358,9 +356,9 @@ We recommend funding with a bit more to cover ongoing transaction fees.
                     wallet.address
                 )
 
-                if pft_balance < IMAGE_GEN_COST:
+                if pft_balance < NFT_MINT_COST:
                     await interaction.response.send_message(
-                        f"Insufficient PFT to generate an image. At least {IMAGE_GEN_COST} PFT is required.",
+                        f"Insufficient PFT to mint an NFT. At least {NFT_MINT_COST} PFT is required.",
                         ephemeral=True,
                     )
                     return
@@ -369,13 +367,13 @@ We recommend funding with a bit more to cover ongoing transaction fees.
                     f"Error fetching pft_balance for wallet with address {wallet.address}: {e}"
                 )
                 await interaction.response.send_message(
-                    f"Issue retrieving PFT balance. Ensure you have at least {IMAGE_GEN_COST} PFT in your wallet and try again.",
+                    f"Issue retrieving PFT balance. Ensure you have at least {NFT_MINT_COST} PFT in your wallet and try again.",
                     ephemeral=True,
                 )
                 return
             # Pass the user's wallet to the modal
             await interaction.response.send_modal(
-                PFTImageGenModal(
+                PFTMintNFTModal(
                     wallet=wallet, generic_pft_utilities=self.generic_pft_utilities
                 )
             )
@@ -386,21 +384,21 @@ We recommend funding with a bit more to cover ongoing transaction fees.
         async def store_seed(interaction: discord.Interaction):
             await interaction.response.send_modal(SeedModal(client=self))
             logger.debug(
-                f"ImageNodeDiscordBot.store_seed: Seed storage command executed by {interaction.user.name}"
+                f"nftnodeDiscordBot.store_seed: Seed storage command executed by {interaction.user.name}"
             )
 
         await self.tree.sync(guild=guild)
-        logger.debug(f"ImageNodeDiscordBot.setup_hook: Slash commands synced")
+        logger.debug(f"nftnodeDiscordBot.setup_hook: Slash commands synced")
 
         commands = await self.tree.fetch_commands(guild=guild)
         logger.debug(f"Registered commands: {[cmd.name for cmd in commands]}")
 
     async def on_ready(self):
         logger.debug(
-            f"ImageNodeDiscordBot.on_ready: Logged in as {self.user} (ID: {self.user.id})"
+            f"nftnodeDiscordBot.on_ready: Logged in as {self.user} (ID: {self.user.id})"
         )
-        logger.debug("ImageNodeDiscordBot.on_ready: ------------------------------")
-        logger.debug("ImageNodeDiscordBot.on_ready: Connected to the following guilds:")
+        logger.debug("nftnodeDiscordBot.on_ready: ------------------------------")
+        logger.debug("nftnodeDiscordBot.on_ready: Connected to the following guilds:")
         for guild in self.guilds:
             logger.debug(f"- {guild.name} (ID: {guild.id})")
 
@@ -410,7 +408,7 @@ We recommend funding with a bit more to cover ongoing transaction fees.
 
         if not channel:
             logger.error(
-                f"ImageNodeDiscordBot.transaction_notifier: Channel with ID "
+                f"nftnodeDiscordBot.transaction_notifier: Channel with ID "
                 f"{self.node_config.discord_activity_channel_id} not found"
             )
             return
@@ -427,18 +425,6 @@ We recommend funding with a bit more to cover ongoing transaction fees.
 
             await asyncio.sleep(0.5)  # Prevent spam
 
-    def parse_possible_image(self, tx: Dict[str, Any]) -> str:
-        hash: str | None = None
-        # NOTE: this is highly dependent on the IMAGE RESPONSE format
-        if TaskType.IMAGE_GEN_RESPONSE.value in tx["memo_data"]:
-            hash = tx["memo_data"].split("ipfs hash: ")[1].strip("`")
-
-        image_string = (
-            "" if hash is None else f"Image: https://gateway.pinata.cloud/ipfs/{hash}"
-        )
-
-        return image_string
-
     def format_notification(self, tx: Dict[str, Any]) -> str:
         """Format the reviewing result for Discord"""
 
@@ -451,8 +437,7 @@ We recommend funding with a bit more to cover ongoing transaction fees.
             f"Memo Type: `{tx['memo_type']}`\n"
             f"Memo Data: `{tx['memo_data']}`\n"
             f"PFT: {tx.get('pft_absolute_amount', 0)}\n"
-            f"URL: {url}\n"
-            f"{self.parse_possible_image(tx)}"
+            f"URL: {url}"
         )
 
     async def generate_basic_balance_info_string(
@@ -542,7 +527,7 @@ def main():
         monitor = PerformanceMonitor(time_window=60)
 
         # Initialize business logic
-        business_logic = ImageGenerationRules.create()
+        business_logic = NFTMintRules.create()
 
         # Initialize NodeTools services
         nodetools = ServiceContainer.initialize(
@@ -561,7 +546,7 @@ def main():
         intents.moderation = True  # For ban/unban events
         intents.message_content = True
         intents.guild_messages = True
-        client = ImageNodeDiscordBot(
+        client = NFTNodeDiscordBot(
             intents=intents, nodetools=nodetools, enable_debug_events=True
         )
 

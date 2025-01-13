@@ -5,19 +5,20 @@ from decimal import Decimal
 from xrpl.wallet import Wallet
 from typing import TYPE_CHECKING
 from loguru import logger
-from imagenode.task_processing.constants import (
-    IMAGE_GEN_COST,
+from nftnode.nft_processing.constants import (
+    NFT_MINT_COST,
+    TaskType,
 )
 import nodetools.configuration.constants as global_constants
 import traceback
 
 if TYPE_CHECKING:
-    from imagenode.chatbots.pft_image_bot import ImageNodeDiscordBot
+    from nftnode.chatbots.pft_nft_bot import NFTNodeDiscordBot
 
 
 class WalletInfoModal(discord.ui.Modal, title="New XRP Wallet"):
     def __init__(
-        self, classic_address: str, wallet_seed: str, client: "ImageNodeDiscordBot"
+        self, classic_address: str, wallet_seed: str, client: "NFTNodeDiscordBot"
     ):
         super().__init__()
         self.classic_address = classic_address
@@ -63,7 +64,7 @@ class WalletInfoModal(discord.ui.Modal, title="New XRP Wallet"):
 class SeedModal(discord.ui.Modal, title="Store Your Seed"):
     seed = discord.ui.TextInput(label="Seed", style=discord.TextStyle.long)
 
-    def __init__(self, client: "ImageNodeDiscordBot"):
+    def __init__(self, client: "NFTNodeDiscordBot"):
         super().__init__()
         self.client = client  # Save the client reference
 
@@ -95,15 +96,13 @@ class SeedModal(discord.ui.Modal, title="Store Your Seed"):
         )
 
 
-class PFTImageGenModal(
-    discord.ui.Modal, title=f"Generate Image (Uses {IMAGE_GEN_COST} PFT)"
-):
+class PFTMintNFTModal(discord.ui.Modal, title=f"Mint NFT (Uses {NFT_MINT_COST} PFT)"):
     prompt = discord.ui.TextInput(
-        label="Prompt", style=discord.TextStyle.long, required=True, max_length=900
+        label="Data URI", style=discord.TextStyle.long, required=True, max_length=900
     )
 
     def __init__(self, wallet: Wallet, generic_pft_utilities: GenericPFTUtilities):
-        super().__init__(title="Generate Image")
+        super().__init__(title="Mint NFT")
         self.wallet = wallet
         self.generic_pft_utilities = generic_pft_utilities
 
@@ -117,8 +116,8 @@ class PFTImageGenModal(
         formatted_datetime = datetime.now().strftime("%Y-%m-%d_%H:%M")
         # construct memo
         memo = self.generic_pft_utilities.construct_memo(
-            memo_data="GENERATE IMAGE ___ " + prompt,
-            memo_type=f"{formatted_datetime}__IMAGEGEN",
+            memo_data=TaskType.NFT_MINT.value + " " + prompt,
+            memo_type=f"{formatted_datetime}__NFTMINT",
             memo_format=interaction.user.name,
         )
 
@@ -128,7 +127,7 @@ class PFTImageGenModal(
                 destination=destination_address,
                 memo=memo,
                 username=interaction.user.name,
-                pft_amount=Decimal(str(IMAGE_GEN_COST)),
+                pft_amount=Decimal(str(NFT_MINT_COST)),
             )
 
             if not self.generic_pft_utilities.verify_transaction_response(response):
@@ -159,15 +158,15 @@ class PFTImageGenModal(
 #         self,
 #         seed: str,
 #         username: str,
-#         client_instance: "ImageNodeDiscordBot",
-#         imagenode_utilities: imagenodeUtilities,
+#         client_instance: "NFTNodeDiscordBot",
+#         nftnode_utilities: nftnodeUtilities,
 #         ephemeral_setting: bool = True,
 #     ):
 #         super().__init__(title="Update Google Doc Link")
 #         self.seed = seed
 #         self.username = username
-#         self.client: "ImageNodeDiscordBot" = client_instance
-#         self.imagenode_utilities = imagenode_utilities
+#         self.client: "NFTNodeDiscordBot" = client_instance
+#         self.nftnode_utilities = nftnode_utilities
 #         self.ephemeral_setting = ephemeral_setting
 #
 #     google_doc_link = discord.ui.TextInput(
@@ -197,7 +196,7 @@ class PFTImageGenModal(
 #                 content="Sending encrypted google doc link to node..."
 #             )
 #
-#             await self.imagenode_utilities.discord__update_google_doc_link(
+#             await self.nftnode_utilities.discord__update_google_doc_link(
 #                 user_seed=self.seed,
 #                 google_doc_link=self.google_doc_link.value,
 #                 username=self.username,

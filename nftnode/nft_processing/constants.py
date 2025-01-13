@@ -1,6 +1,6 @@
 from enum import Enum
 
-IMAGE_GEN_COST = 1  # 1 PFT
+NFT_MINT_COST = 1  # 1 PFT
 
 # Super Users
 DISCORD_SUPER_USER_IDS = [427471329365590017, 149706927868215297]
@@ -10,5 +10,5 @@ DISCORD_SUPER_USER_IDS = [427471329365590017, 149706927868215297]
 class TaskType(Enum):
     """Task-related memo types for workflow management"""
 
-    IMAGE_GEN = "GENERATE IMAGE ___"
-    IMAGE_GEN_RESPONSE = "IMAGE RESPONSE ___"
+    NFT_MINT = "NFT MINT ___"
+    NFT_MINT_RESPONSE = "NFT MINT RESPONSE ___"

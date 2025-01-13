@@ -1,5 +1,5 @@
-# Image Node
-Post Fiat Image Node.
+# NFT Node
+Post Fiat NFT Node.
 
 ## Setting up a Local Node
 ```bash
@@ -24,4 +24,4 @@ nodetools update-creds
 0. Before running this you will need to use nodetools to initialize credentials and node configuration on your machine. To do so visit https://github.com/postfiatorg/nodetools/tree/async
 1. Create a venv with python version 3.12.0
 2. Run `pip install -r requirements.dev.txt`
-3. To run the bot you can call `python -m imagenode.chatbots.pft_image_bot`
+3. To run the bot you can call `python -m nftnode.chatbots.pft_nft_bot`

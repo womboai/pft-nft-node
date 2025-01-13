@@ -15,8 +15,7 @@ services:
       # must match credentials and configuration used with nodetools
       POSTGRES_PASSWORD: postfiat
       POSTGRES_USER: postfiat
-      # the name of the DB matches what is provided to us by node tools init-db
-      POSTGRES_DB: postfiat_db_testnet
+      POSTGRES_DB: postfiat_nft_db_testnet
     ports: [8543:5432]
     volumes: [pgdata:/var/lib/postgresql/data]
 volumes:
