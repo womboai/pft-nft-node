@@ -1,12 +1,57 @@
 from xrpl.asyncio.clients import AsyncJsonRpcClient
+from xrpl.models import Memo
 from xrpl.wallet import Wallet
 from xrpl.models.transactions import NFTokenMint, NFTokenCreateOffer
 from xrpl.utils import str_to_hex
 from xrpl.asyncio.transaction import submit_and_wait
 from typing import Optional
+from dataclasses import dataclass
 
 
+# Structs
+@dataclass
+class MintSuccess:
+    nft_id: str
+    transaction_hash: str | None
+    validated: bool
+
+
+@dataclass
+class MintError:
+    message: str
+    transaction_hash: str | None
+
+
+@dataclass
+class SellSuccess:
+    offer_id: str
+    transaction_hash: str | None
+
+
+@dataclass
+class SellError:
+    message: str
+
+
+@dataclass
+class NFTSuccess:
+    mint_result: MintSuccess
+    offer_result: SellSuccess
+    nft_id: str
+    offer_id: str
+
+
+@dataclass
+class NFTError:
+    mint_result: MintError | MintSuccess
+    message: str
+    offer_result: SellError | None = None
+
+
+# Implementation
 class XRPLNFTMinter:
+    _client: AsyncJsonRpcClient
+
     def __init__(self, api_url: str = "https://s.altnet.rippletest.net:51234"):
         """
         Initialize the NFT minting service.
@@ -14,7 +59,7 @@ class XRPLNFTMinter:
         Args:
             api_url (str): URL of the XRPL node to connect to
         """
-        self.client = AsyncJsonRpcClient(api_url)
+        self._client = AsyncJsonRpcClient(api_url)
 
     async def mint_nft(
         self,
@@ -23,7 +68,7 @@ class XRPLNFTMinter:
         transfer_fee: int = 0,
         flags: int = 8,
         taxon: int = 0,
-    ) -> dict:
+    ) -> MintSuccess | MintError:
         """
         Mint an NFT.
 
@@ -35,7 +80,7 @@ class XRPLNFTMinter:
             taxon (int): Token taxon identifier
 
         Returns:
-            dict: Transaction response with NFT ID and status
+            MintSuccess | MintError: Successful or Error result from a NFTokenMint transaction attempt
         """
         try:
             # Create wallet from seed
@@ -51,30 +96,38 @@ class XRPLNFTMinter:
                 flags=flags,
                 transfer_fee=transfer_fee,
                 nftoken_taxon=taxon,
+                memos=[
+                    Memo(
+                        memo_data=str_to_hex("PFT NFT Mint"),
+                        memo_type=str_to_hex("NFT_MINT"),
+                    )
+                ],
             )
 
             # Submit and wait for validation
-            response = await submit_and_wait(mint_tx, self.client, wallet)
+            response = await submit_and_wait(mint_tx, self._client, wallet)
 
             if response.result.get("meta", {}).get("TransactionResult") == "tesSUCCESS":
                 # Extract NFTokenID from response
                 nft_id = response.result["meta"].get("nftoken_id")
 
-                return {
-                    "status": "success",
-                    "nft_id": nft_id,
-                    "transaction_hash": response.result.get("hash"),
-                    "validated": response.is_successful(),
-                }
+                return MintSuccess(
+                    nft_id=nft_id,
+                    transaction_hash=response.result.get("hash"),
+                    validated=response.is_successful(),
+                )
+
             else:
-                return {
-                    "status": "error",
-                    "message": f"Transaction failed: {response.result.get('meta', {}).get('TransactionResult')}",
-                    "transaction_hash": response.result.get("hash"),
-                }
+                return MintError(
+                    transaction_hash=response.result.get("hash"),
+                    message=f"Transaction failed: {response.result.get('meta', {}).get('TransactionResult')}",
+                )
 
         except Exception as e:
-            return {"status": "error", "message": str(e)}
+            return MintError(
+                transaction_hash=None,
+                message=str(e),
+            )
 
     async def create_sell_offer(
         self,
@@ -82,7 +135,7 @@ class XRPLNFTMinter:
         nft_id: str,
         amount: str,
         destination: Optional[str] = None,
-    ) -> dict:
+    ) -> SellSuccess | SellError:
         """
         Create a sell offer for an NFT.
 
@@ -93,7 +146,7 @@ class XRPLNFTMinter:
             destination (str, optional): Specific buyer address
 
         Returns:
-            dict: Transaction response
+            SellSuccess | SellError: Successful or Error result from the NFT sell offer.
         """
         try:
             wallet = Wallet.from_seed(seed=owner_seed)
@@ -105,27 +158,30 @@ class XRPLNFTMinter:
                 amount=amount,
                 destination=destination,
                 flags=1,  # Sellable
+                memos=[
+                    Memo(
+                        memo_data=str_to_hex("PFT NFT Mint Free Sell"),
+                        memo_type=str_to_hex("NFT_MINT"),
+                    )
+                ],
             )
 
             response = await submit_and_wait(
-                offer_tx, wallet=wallet, client=self.client
+                offer_tx, wallet=wallet, client=self._client
             )
 
             if response.result.get("meta", {}).get("TransactionResult") == "tesSUCCESS":
                 offer_id = response.result["meta"].get("offer_id")
-                return {
-                    "status": "success",
-                    "offer_id": offer_id,
-                    "transaction_hash": response.result.get("hash"),
-                }
+                return SellSuccess(
+                    offer_id=offer_id, transaction_hash=response.result.get("hash")
+                )
             else:
-                return {
-                    "status": "error",
-                    "message": f"Offer creation failed: {response.result.get('meta', {}).get('TransactionResult')}",
-                }
+                return SellError(
+                    message=f"Offer creation failed: {response.result.get('meta', {}).get('TransactionResult')}"
+                )
 
         except Exception as e:
-            return {"status": "error", "message": str(e)}
+            return SellError(message=str(e))
 
     async def create_nft_for_recipient(
         self,
@@ -134,7 +190,7 @@ class XRPLNFTMinter:
         uri: str,
         transfer_fee: int = 0,
         amount: str = "0",
-    ) -> dict:
+    ) -> NFTSuccess | NFTError:
         """
         Create an NFT and transfer it to a recipient through a free sell offer.
 
@@ -146,34 +202,32 @@ class XRPLNFTMinter:
             amount (str): Amount of XRP for the transfer (usually "0" for gifts)
 
         Returns:
-            dict: Complete transaction response
+            NFTSuccess | NFTError: Either a successfuly or error NFT result
         """
         # First mint the NFT
         mint_result = await self.mint_nft(issuer_seed, uri, transfer_fee)
 
-        if mint_result["status"] != "success":
-            return mint_result
+        if isinstance(mint_result, MintError):
+            return NFTError(mint_result=mint_result, message="Failed to mint NFT")
 
         # Create a sell offer for the recipient
         offer_result = await self.create_sell_offer(
             owner_seed=issuer_seed,
-            nft_id=mint_result["nft_id"],
+            nft_id=mint_result.nft_id,
             amount=amount,
             destination=recipient_address,
         )
 
-        if offer_result["status"] != "success":
-            return {
-                "status": "error",
-                "message": "Failed to create transfer offer",
-                "mint_result": mint_result,
-                "offer_result": offer_result,
-            }
+        if isinstance(offer_result, SellError):
+            return NFTError(
+                mint_result=mint_result,
+                offer_result=offer_result,
+                message="Failed to create transfer offer",
+            )
 
-        return {
-            "status": "success",
-            "mint_result": mint_result,
-            "offer_result": offer_result,
-            "nft_id": mint_result["nft_id"],
-            "offer_id": offer_result["offer_id"],
-        }
+        return NFTSuccess(
+            mint_result=mint_result,
+            offer_result=offer_result,
+            nft_id=mint_result.nft_id,
+            offer_id=offer_result.offer_id,
+        )

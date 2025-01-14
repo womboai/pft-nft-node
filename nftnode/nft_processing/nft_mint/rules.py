@@ -32,7 +32,7 @@ class NFTMintRule(RequestRule):
         """
         if tx.get("destination") != dependencies.node_config.node_address:
             return ValidationResult(
-                valid=False, notes=f"wrong destination address {tx.destination}"
+                valid=False, notes=f"wrong destination address: {tx.destination}"
             )
         if tx.pft_amount < NFT_MINT_COST:
             return ValidationResult(

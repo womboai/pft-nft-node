@@ -22,7 +22,12 @@ from nodetools.configuration.configuration import (
 from nodetools.protocols.generic_pft_utilities import GenericPFTUtilities
 from nodetools.protocols.credentials import CredentialManager
 
-from nftnode.nft_processing.nft_mint.nft import XRPLNFTMinter
+from nftnode.nft_processing.nft_mint.nft import (
+    MintError,
+    NFTError,
+    SellError,
+    XRPLNFTMinter,
+)
 from nftnode.nft_processing.utils import derive_response_memo_type
 
 
@@ -34,17 +39,17 @@ class NFTMintResponseGenerator(ResponseGenerator):
         generic_pft_utilities: GenericPFTUtilities,
         credential_manager: CredentialManager,
     ):
-        self.node_config = node_config
-        self.generic_pft_utilities = generic_pft_utilities
-        self.network_config = network_config
-        self.credential_manager = credential_manager
-        self.seed = self.credential_manager.get_credential(
-            f"{self.node_config.node_name}__v1xrpsecret"
+        self._node_config = node_config
+        self._generic_pft_utilities = generic_pft_utilities
+        self._network_config = network_config
+        self._credential_manager = credential_manager
+        self._seed = self._credential_manager.get_credential(
+            f"{self._node_config.node_name}__v1xrpsecret"
         )
 
     async def evaluate_request(self, request_tx: MemoTransaction) -> Dict[str, Any]:
         """Evaluate NFT mint request"""
-        logger.debug("Evaluating NFT mint request...")
+        logger.info("Evaluating NFT mint request...")
         uri = request_tx.memo_data.strip()
 
         if uri == "":
@@ -53,27 +58,42 @@ class NFTMintResponseGenerator(ResponseGenerator):
 
         try:
             https_url = (
-                self.network_config.local_rpc_url
+                self._network_config.local_rpc_url
                 if RuntimeConfig.HAS_LOCAL_NODE
-                and self.network_config.local_rpc_url is not None
-                else self.network_config.public_rpc_url
+                and self._network_config.local_rpc_url is not None
+                else self._network_config.public_rpc_url
             )
 
             minter = XRPLNFTMinter(https_url)
 
             logger.debug("Creating NFT and selling offer...")
             result = await minter.create_nft_for_recipient(
-                issuer_seed=self.seed,
-                recipient_address=request_tx["account"],
+                issuer_seed=self._seed,
+                recipient_address=request_tx.account,
                 uri=uri,
                 transfer_fee=0,
+                amount="0",  # free offer
             )
 
-            logger.debug(f"NFT created with data: {result}")
+            if isinstance(result, NFTError):
+                logger.error(f"Failed to mint and transfer NFT: {result.message}")
 
-            return {
-                "offer_id": result.get("offer_id"),
-            }
+                if isinstance(result.mint_result, MintError):
+                    logger.error(
+                        f"Failed to mint NFT with error: {result.mint_result.message}"
+                    )
+                if isinstance(result.offer_result, SellError):
+                    logger.error(
+                        f"Failed to make Sell Offer with error: {result.offer_result.message}"
+                    )
+
+                return {"offer_id": None}
+            else:
+                logger.info(
+                    f"Successfully Minted NFT and made Sell offer with id: {result.offer_id}"
+                )
+                return {"offer_id": result.offer_id}
+
         except Exception as e:
             logger.error(f"Failed to mint NFT to receipient with error: {e}")
             return {"offer_id": None}
@@ -83,7 +103,7 @@ class NFTMintResponseGenerator(ResponseGenerator):
     ) -> MemoConstructionParameters:
         """Construct NFT response parameters"""
 
-        logger.debug("Constructing NFT response...")
+        logger.info("Constructing NFT response...")
         try:
             offer_id = evaluation_result["offer_id"]
 
@@ -99,7 +119,7 @@ class NFTMintResponseGenerator(ResponseGenerator):
             )
 
             memo = MemoConstructionParameters.construct_standardized_memo(
-                source=self.node_config.node_name,
+                source=self._node_config.node_name,
                 destination=request_tx.account,
                 memo_data=response_string,
                 memo_type=response_memo_type,
