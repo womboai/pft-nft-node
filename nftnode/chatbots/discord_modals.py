@@ -1,4 +1,3 @@
-from datetime import datetime
 import discord
 from nodetools.protocols.generic_pft_utilities import GenericPFTUtilities
 from decimal import Decimal
@@ -11,6 +10,8 @@ from nftnode.nft_processing.constants import (
 )
 import nodetools.configuration.constants as global_constants
 import traceback
+from nodetools.models.memo_processor import generate_custom_id
+from nodetools.protocols.generic_pft_utilities import GenericPFTUtilities, Response
 
 if TYPE_CHECKING:
     from nftnode.chatbots.pft_nft_bot import NFTNodeDiscordBot
@@ -113,37 +114,31 @@ class PFTMintNFTModal(discord.ui.Modal, title=f"Mint NFT (Uses {NFT_MINT_COST} P
         destination_address = self.generic_pft_utilities.node_config.node_address
         prompt = self.prompt.value
 
-        formatted_datetime = datetime.now().strftime("%Y-%m-%d_%H:%M")
-        # construct memo
-        memo = self.generic_pft_utilities.construct_memo(
-            memo_data=TaskType.NFT_MINT.value + " " + prompt,
-            memo_type=f"{formatted_datetime}__NFTMINT",
-            memo_format=interaction.user.name,
-        )
-
         try:
+            request_id = generate_custom_id()
             response = await self.generic_pft_utilities.send_memo(
                 wallet_seed_or_wallet=self.wallet,
                 destination=destination_address,
-                memo=memo,
-                username=interaction.user.name,
+                memo_data=prompt,
+                memo_type=request_id + "__" + TaskType.NFT_MINT.value,
                 pft_amount=Decimal(str(NFT_MINT_COST)),
             )
 
             if not self.generic_pft_utilities.verify_transaction_response(response):
-                raise Exception(f"Failed to send PFT transaction: {response.result}")
+                if isinstance(response, Response):
+                    raise Exception(
+                        f"Failed to send PFT transaction: {response.result}"
+                    )
+
+                raise Exception(f"Failed to send PFT transaction: {response}")
 
             # extract response from last memo
-            tx_info = self.generic_pft_utilities.extract_transaction_info_from_response_object(
-                response
-            )[
+            tx_info = self.generic_pft_utilities.extract_transaction_info(response)[
                 "clean_string"
             ]
-
             await interaction.followup.send(
                 f"Transaction result: {tx_info}", ephemeral=True
             )
-
         except Exception as e:
             logger.error(f"PFTTransactionModal.on_submit: Error sending memo: {e}")
             logger.error(traceback.format_exc())

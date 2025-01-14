@@ -1,28 +1,28 @@
 # Standard library imports
-from typing import Dict, Any, Optional
-
-# Third-party imports
-from loguru import logger
+from typing import Optional
 
 # NodeTools imports
 from nodetools.models.models import (
+    MemoTransaction,
     ResponseQuery,
     RequestRule,
     ResponseRule,
     ResponseGenerator,
     Dependencies,
+    ValidationResult,
 )
 
-from nftnode.nft_processing.constants import NFT_MINT_COST
-from nftnode.nft_processing.nft_mint.patterns import NFT_MINT_RESPONSE_PATTERN
+from nftnode.nft_processing.constants import NFT_MINT_COST, TaskType
 from nftnode.nft_processing.nft_mint.response import NFTMintResponseGenerator
-from nftnode.nft_processing.utils import regex_to_sql_pattern
+from nftnode.nft_processing.utils import derive_response_memo_type
 
 
 class NFTMintRule(RequestRule):
     """Pure business logic for requesting NFT minting."""
 
-    async def validate(self, tx: Dict[str, Any], dependencies: Dependencies) -> bool:
+    async def validate(
+        self, tx: MemoTransaction, dependencies: Dependencies
+    ) -> ValidationResult:
         """
         Validate business rules for a NFT mint request.
         Pattern matching is handled by TransactionGraph.
@@ -31,17 +31,19 @@ class NFTMintRule(RequestRule):
         2. Must have sent 1 PFT
         """
         if tx.get("destination") != dependencies.node_config.node_address:
-            return False
-        pft_amount = tx.get("pft_absolute_amount", 0)
-        logger.debug(f"Received {pft_amount} PFT for an NFT mint request")
-        if pft_amount < NFT_MINT_COST:
-            return False
+            return ValidationResult(
+                valid=False, notes=f"wrong destination address: {tx.destination}"
+            )
+        if tx.pft_amount < NFT_MINT_COST:
+            return ValidationResult(
+                valid=False, notes=f"insufficient PFT amount: {tx.pft_amount}"
+            )
 
-        return True
+        return ValidationResult(valid=True)
 
     async def find_response(
         self,
-        request_tx: Dict[str, Any],
+        request_tx: MemoTransaction,
     ) -> Optional[ResponseQuery]:
         """Get query information for finding a NFT mint response."""
         query = """
@@ -50,20 +52,20 @@ class NFTMintRule(RequestRule):
                 request_destination := %(destination)s,
                 request_time := %(request_time)s,
                 response_memo_type := %(response_memo_type)s,
-                response_memo_data := %(response_memo_data)s,
                 require_after_request := TRUE
             );
         """
 
-        # NOTE: look for NFT mint responses by the node
+        response_memo_type = derive_response_memo_type(
+            request_memo_type=request_tx.memo_type,
+            response_memo_type=TaskType.NFT_MINT_RESPONSE.value,
+        )
+        # NOTE: look for nft responses by the node that match the given request
         params = {
-            "account": request_tx["account"],
-            "destination": request_tx["destination"],
-            "request_time": request_tx["close_time_iso"],
-            "response_memo_type": request_tx["memo_type"],
-            "response_memo_data": regex_to_sql_pattern(
-                NFT_MINT_RESPONSE_PATTERN.memo_data
-            ),
+            "account": request_tx.account,
+            "destination": request_tx.destination,
+            "request_time": request_tx.datetime,
+            "response_memo_type": response_memo_type,
         }
 
         return ResponseQuery(query=query, params=params)
@@ -72,8 +74,10 @@ class NFTMintRule(RequestRule):
 class NFTMintResponseRule(ResponseRule):
     """Pure business logic for handling returning minted NFT"""
 
-    async def validate(self, *args, **kwargs) -> bool:
-        return True
+    async def validate(
+        self, tx: MemoTransaction, dependencies: Dependencies
+    ) -> ValidationResult:
+        return ValidationResult(valid=True)
 
     def get_response_generator(self, dependencies: Dependencies) -> ResponseGenerator:
         """Get response generator for NFT minting with dependencies"""
