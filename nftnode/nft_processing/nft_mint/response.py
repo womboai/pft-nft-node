@@ -5,8 +5,9 @@ from typing import Dict, Any
 from loguru import logger
 
 from nodetools.models.models import (
+    MemoConstructionParameters,
+    MemoTransaction,
     ResponseGenerator,
-    ResponseParameters,
 )
 
 # Task node imports
@@ -22,6 +23,7 @@ from nodetools.protocols.generic_pft_utilities import GenericPFTUtilities
 from nodetools.protocols.credentials import CredentialManager
 
 from nftnode.nft_processing.nft_mint.nft import XRPLNFTMinter
+from nftnode.nft_processing.utils import derive_response_memo_type
 
 
 class NFTMintResponseGenerator(ResponseGenerator):
@@ -40,14 +42,12 @@ class NFTMintResponseGenerator(ResponseGenerator):
             f"{self.node_config.node_name}__v1xrpsecret"
         )
 
-    async def evaluate_request(self, request_tx: Dict[str, Any]) -> Dict[str, Any]:
+    async def evaluate_request(self, request_tx: MemoTransaction) -> Dict[str, Any]:
         """Evaluate NFT mint request"""
         logger.debug("Evaluating NFT mint request...")
-        request_text = request_tx.get("memo_data")
+        uri = request_tx.memo_data.strip()
 
-        uri = self._extract_uri(request_text or "")
-
-        if request_text is None or uri is None:
+        if uri == "":
             logger.debug("No memo_data was provided")
             return {"offer_id": None}
 
@@ -78,14 +78,9 @@ class NFTMintResponseGenerator(ResponseGenerator):
             logger.error(f"Failed to mint NFT to receipient with error: {e}")
             return {"offer_id": None}
 
-    def _extract_uri(self, memo_data: str):
-        if memo_data.upper().startswith(TaskType.NFT_MINT.value):
-            return memo_data[len(TaskType.NFT_MINT.value) :].strip()
-        return None
-
     async def construct_response(
-        self, request_tx: Dict[str, Any], evaluation_result: Dict[str, Any]
-    ) -> ResponseParameters:
+        self, request_tx: MemoTransaction, evaluation_result: Dict[str, Any]
+    ) -> MemoConstructionParameters:
         """Construct NFT response parameters"""
 
         logger.debug("Constructing NFT response...")
@@ -96,23 +91,20 @@ class NFTMintResponseGenerator(ResponseGenerator):
                 raise Exception("offer id from evaluating request was null")
 
             logger.debug(f"Constructing response with offer id: {offer_id}")
+            response_string = "offer id: " + offer_id
 
-            response_string = (
-                TaskType.NFT_MINT_RESPONSE.value + " offer id: " + offer_id
+            response_memo_type = derive_response_memo_type(
+                request_memo_type=request_tx.memo_type,
+                response_memo_type=TaskType.NFT_MINT_RESPONSE.value,
             )
 
-            logger.debug(f"Constructed response string: {response_string}")
-
-            memo = self.generic_pft_utilities.construct_memo(
-                memo_data=response_string,
-                memo_format=self.node_config.node_name,
-                memo_type=request_tx["memo_type"],
-            )
-
-            return ResponseParameters(
+            memo = MemoConstructionParameters.construct_standardized_memo(
                 source=self.node_config.node_name,
-                memo=memo,
-                destination=request_tx["account"],
+                destination=request_tx.account,
+                memo_data=response_string,
+                memo_type=response_memo_type,
             )
+
+            return memo
         except Exception as e:
             raise Exception(f"Failed to construct NFT response: {e}")

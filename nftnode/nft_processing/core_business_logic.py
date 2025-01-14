@@ -5,6 +5,7 @@ from nodetools.models.models import (
     BusinessLogicProvider,
     InteractionType,
 )
+from nodetools.configuration.constants import UNIQUE_ID_PATTERN_V1
 
 # Task node imports
 from nftnode.nft_processing.nft_mint.patterns import (
@@ -12,15 +13,22 @@ from nftnode.nft_processing.nft_mint.patterns import (
     NFT_MINT_RESPONSE_PATTERN,
 )
 from nftnode.nft_processing.nft_mint.rules import NFTMintResponseRule, NFTMintRule
+import re
 
 ##############################################################################
 ############################## MEMO PATTERNS #################################
 ##############################################################################
 
 # System memo patterns
-HANDSHAKE_PATTERN = MemoPattern(memo_type=SystemMemoType.HANDSHAKE.value)
+HANDSHAKE_PATTERN = MemoPattern(
+    memo_type=re.compile(
+        f"^{UNIQUE_ID_PATTERN_V1.pattern}__{SystemMemoType.HANDSHAKE.value}$"
+    )
+)
 GOOGLE_DOC_LINK_PATTERN = MemoPattern(
-    memo_type=SystemMemoType.GOOGLE_DOC_CONTEXT_LINK.value
+    memo_type=re.compile(
+        f"^{UNIQUE_ID_PATTERN_V1.pattern}__{SystemMemoType.GOOGLE_DOC_CONTEXT_LINK.value}$"
+    )
 )
 
 
