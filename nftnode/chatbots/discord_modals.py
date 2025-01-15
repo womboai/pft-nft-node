@@ -193,7 +193,7 @@ class PFTAcceptNFTModal(discord.ui.Modal, title=f"Accept an Offered NFT"):
                 hash=accept_result.transaction_hash
             )
             await interaction.followup.send(
-                f"Offer Accepted.\nTransaction URL: {url}",
+                f"Offer {self.offer_id.value} Accepted.\nTransaction URL: {url}",
                 ephemeral=True,
             )
 

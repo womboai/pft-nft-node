@@ -1,10 +1,11 @@
 # standard imports
 import asyncio
+import os
 from pathlib import Path
 from dataclasses import dataclass
 import traceback
 import sys
-from typing import Optional, Dict, Any
+from typing import List, Optional, Dict, Any
 import signal
 
 # third party imports
@@ -74,18 +75,18 @@ class NFTNodeDiscordBot(discord.Client):
     async def setup_hook(self):
         """Sets up the slash commands for the bot and initiates background tasks."""
         guild: Object | None = None
-
         guild_id = self.node_config.discord_guild_id
-        if guild_id is not None:
+
+        if guild_id is not None and os.getenv("ENV") == "local":
             guild = Object(id=guild_id)
+
+            # Prevents duplicate commands but also makes launch slow.
+            # self.tree.clear_commands(guild=guild)
+            # await self.tree.sync(guild=guild)
 
         self.bg_task = self.loop.create_task(
             self.transaction_notifier(), name="DiscordBotTransactionNotifier"
         )
-
-        # # Prevents duplicate commands but also makes launch slow.
-        # self.tree.clear_commands(guild=guild)
-        # await self.tree.sync(guild=guild)
 
         @self.event
         async def on_guild_available(guild: discord.Guild):
@@ -427,10 +428,21 @@ We recommend funding with a bit more to cover ongoing transaction fees.
                 f"nftnodeDiscordBot.store_seed: Seed storage command executed by {interaction.user.name}"
             )
 
-        await self.tree.sync(guild=guild)
-        logger.debug(f"nftnodeDiscordBot.setup_hook: Slash commands synced")
+        commands: List[app_commands.AppCommand] = []
 
-        commands = await self.tree.fetch_commands(guild=guild)
+        if os.getenv("ENV") == "local":
+            # SYNC GUILD SPECIFIC COMMANDS (faster to load)
+            await self.tree.sync(guild=guild)
+            logger.debug(f"ImageNodeDiscordBot.setup_hook: Guild Slash commands synced")
+            commands = await self.tree.fetch_commands(guild=guild)
+        else:
+            # SYNC GLOBAL COMMANDS
+            await self.tree.sync()
+            logger.debug(
+                f"ImageNodeDiscordBot.setup_hook: Global Slash commands synced"
+            )
+            commands = await self.tree.fetch_commands()
+
         logger.debug(f"Registered commands: {[cmd.name for cmd in commands]}")
 
     async def on_ready(self):
@@ -486,7 +498,7 @@ We recommend funding with a bit more to cover ongoing transaction fees.
             f"Memo Format: `{tx['memo_format']}`\n"
             f"Memo Type: `{tx['memo_type']}`\n"
             f"Memo Data: `{tx['memo_data']}`\n"
-            f"PFT: {tx.get('pft_absolute_amount', 0)}\n"
+            f"PFT: {tx.get('pft_amount', 0)}\n"
             f"URL: {url}"
         )
 

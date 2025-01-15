@@ -106,12 +106,6 @@ class XRPLNFTMinter:
                 flags=flags,
                 transfer_fee=transfer_fee,
                 nftoken_taxon=taxon,
-                memos=[
-                    Memo(
-                        memo_data=str_to_hex("PFT NFT Mint"),
-                        memo_type=str_to_hex("NFT_MINT"),
-                    )
-                ],
             )
 
             # Submit and wait for validation
@@ -168,12 +162,6 @@ class XRPLNFTMinter:
                 amount=amount,
                 destination=destination,
                 flags=1,  # Sellable
-                memos=[
-                    Memo(
-                        memo_data=str_to_hex("PFT NFT Mint Free Sell"),
-                        memo_type=str_to_hex("NFT_MINT"),
-                    )
-                ],
             )
 
             response = await submit_and_wait(
@@ -263,12 +251,6 @@ class XRPLNFTMinter:
             accept_tx = NFTokenAcceptOffer(
                 account=wallet.classic_address,
                 nftoken_sell_offer=offer_id,
-                memos=[
-                    Memo(
-                        memo_data=str_to_hex("PFT NFT Offer Accept"),
-                        memo_type=str_to_hex("NFT_MINT"),
-                    )
-                ],
             )
 
             response = await submit_and_wait(
