@@ -11,6 +11,7 @@ from nodetools.models.models import (
 )
 
 # Task node imports
+from nftnode.config import get_https_url
 from nftnode.nft_processing.constants import TaskType
 
 # NodeTools imports
@@ -57,13 +58,7 @@ class NFTMintResponseGenerator(ResponseGenerator):
             return {"offer_id": None}
 
         try:
-            https_url = (
-                self._network_config.local_rpc_url
-                if RuntimeConfig.HAS_LOCAL_NODE
-                and self._network_config.local_rpc_url is not None
-                else self._network_config.public_rpc_url
-            )
-
+            https_url = get_https_url(self._network_config)
             minter = XRPLNFTMinter(https_url)
 
             logger.debug("Creating NFT and selling offer...")

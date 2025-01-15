@@ -1,5 +1,5 @@
 from xrpl.asyncio.clients import AsyncJsonRpcClient
-from xrpl.models import Memo
+from xrpl.models import Memo, NFTokenAcceptOffer
 from xrpl.wallet import Wallet
 from xrpl.models.transactions import NFTokenMint, NFTokenCreateOffer
 from xrpl.utils import str_to_hex
@@ -46,6 +46,16 @@ class NFTError:
     mint_result: MintError | MintSuccess
     message: str
     offer_result: SellError | None = None
+
+
+@dataclass
+class AcceptOfferSuccess:
+    transaction_hash: str
+
+
+@dataclass
+class AcceptOfferError:
+    message: str
 
 
 # Implementation
@@ -231,3 +241,52 @@ class XRPLNFTMinter:
             nft_id=mint_result.nft_id,
             offer_id=offer_result.offer_id,
         )
+
+    async def accept_offer(
+        self, buyer_seed: str, offer_id: str
+    ) -> AcceptOfferSuccess | AcceptOfferError:
+        """
+        Accept an NFT offer.
+
+        Args:
+            buyer_seed (str): Seed of the account accepting the offer
+            offer_id (str): ID of the offer to accept
+
+        Returns:
+            AcceptOfferSuccess | AcceptOfferError: Success or Error result from attempting to accept
+            an NFT offer.
+        """
+        try:
+            wallet = Wallet.from_seed(seed=buyer_seed)
+
+            # Accept offer transaction
+            accept_tx = NFTokenAcceptOffer(
+                account=wallet.classic_address,
+                nftoken_sell_offer=offer_id,
+                memos=[
+                    Memo(
+                        memo_data=str_to_hex("PFT NFT Offer Accept"),
+                        memo_type=str_to_hex("NFT_MINT"),
+                    )
+                ],
+            )
+
+            response = await submit_and_wait(
+                accept_tx, wallet=wallet, client=self._client
+            )
+
+            if response.result.get("meta", {}).get("TransactionResult") == "tesSUCCESS":
+                tx_hash = response.result.get("hash")
+                if tx_hash is None:
+                    return AcceptOfferError(
+                        message="Accept Offer tx successful, but hash could not be found."
+                    )
+
+                return AcceptOfferSuccess(transaction_hash=tx_hash)
+            else:
+                return AcceptOfferError(
+                    message=f"Offer acceptance failed: {response.result.get('meta', {}).get('TransactionResult')}"
+                )
+
+        except Exception as e:
+            return AcceptOfferError(message=str(e))

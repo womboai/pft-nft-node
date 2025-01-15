@@ -1,9 +1,11 @@
 import discord
+from nodetools.configuration.configuration import NetworkConfig
 from nodetools.protocols.generic_pft_utilities import GenericPFTUtilities
 from decimal import Decimal
 from xrpl.wallet import Wallet
 from typing import TYPE_CHECKING
 from loguru import logger
+from nftnode.config import get_https_url
 from nftnode.nft_processing.constants import (
     NFT_MINT_COST,
     TaskType,
@@ -12,6 +14,8 @@ import nodetools.configuration.constants as global_constants
 import traceback
 from nodetools.models.memo_processor import generate_custom_id
 from nodetools.protocols.generic_pft_utilities import GenericPFTUtilities, Response
+
+from nftnode.nft_processing.nft_mint.nft import AcceptOfferError, XRPLNFTMinter
 
 if TYPE_CHECKING:
     from nftnode.chatbots.pft_nft_bot import NFTNodeDiscordBot
@@ -98,7 +102,7 @@ class SeedModal(discord.ui.Modal, title="Store Your Seed"):
 
 
 class PFTMintNFTModal(discord.ui.Modal, title=f"Mint NFT (Uses {NFT_MINT_COST} PFT)"):
-    prompt = discord.ui.TextInput(
+    uri = discord.ui.TextInput(
         label="Data URI", style=discord.TextStyle.long, required=True, max_length=900
     )
 
@@ -112,14 +116,13 @@ class PFTMintNFTModal(discord.ui.Modal, title=f"Mint NFT (Uses {NFT_MINT_COST} P
 
         # Perform the transaction using the details provided in the modal
         destination_address = self.generic_pft_utilities.node_config.node_address
-        prompt = self.prompt.value
 
         try:
             request_id = generate_custom_id()
             response = await self.generic_pft_utilities.send_memo(
                 wallet_seed_or_wallet=self.wallet,
                 destination=destination_address,
-                memo_data=prompt,
+                memo_data=self.uri.value,
                 memo_type=request_id + "__" + TaskType.NFT_MINT.value,
                 pft_amount=Decimal(str(NFT_MINT_COST)),
             )
@@ -146,6 +149,53 @@ class PFTMintNFTModal(discord.ui.Modal, title=f"Mint NFT (Uses {NFT_MINT_COST} P
                 f"An error occurred: {str(e)}", ephemeral=True
             )
             return
+
+
+class PFTAcceptNFTModal(discord.ui.Modal, title=f"Accept an Offered NFT"):
+    offer_id = discord.ui.TextInput(
+        label="Offer Id", style=discord.TextStyle.short, required=True, max_length=100
+    )
+
+    def __init__(
+        self,
+        wallet: Wallet,
+        generic_pft_utilities: GenericPFTUtilities,
+        network_config: NetworkConfig,
+    ):
+        super().__init__(title="Accept NFT Offer")
+        self.wallet = wallet
+        self.generic_pft_utilities = generic_pft_utilities
+        self.minter = XRPLNFTMinter(get_https_url(network_config))
+        self.network_config = network_config
+
+    async def on_submit(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
+
+        if self.wallet.seed is None:
+            await interaction.followup.send(
+                "Could not find a seed for your wallet. Use /pf_store_seed and try again.",
+                ephemeral=True,
+            )
+            return
+
+        accept_result = await self.minter.accept_offer(
+            buyer_seed=self.wallet.seed,
+            offer_id=self.offer_id.value,
+        )
+
+        if isinstance(accept_result, AcceptOfferError):
+            await interaction.followup.send(
+                f"Failed to accept offer with reason: {accept_result.message}",
+                ephemeral=True,
+            )
+        else:
+            url = self.network_config.explorer_tx_url_mask.format(
+                hash=accept_result.transaction_hash
+            )
+            await interaction.followup.send(
+                f"Offer Accepted.\nTransaction URL: {url}",
+                ephemeral=True,
+            )
 
 
 # class UpdateLinkModal(discord.ui.Modal, title="Update Google Doc Link"):

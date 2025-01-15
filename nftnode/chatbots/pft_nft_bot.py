@@ -28,6 +28,7 @@ from nftnode.nft_processing.constants import (
 )
 from nftnode.nft_processing.core_business_logic import NFTMintRules
 from nftnode.chatbots.discord_modals import (
+    PFTAcceptNFTModal,
     SeedModal,
     PFTMintNFTModal,
     WalletInfoModal,
@@ -176,6 +177,7 @@ class NFTNodeDiscordBot(discord.Client):
 
 ### NFT Minting 
 1. /pf_mint_nft: Open a form to mint an NFT using {NFT_MINT_COST} PFT.
+2. /pf_accept_offer: Accept the free offer for your minted token using the offer id provided by /pf_mint_nft.
 
 Note: XRP wallets need {global_constants.MIN_XRP_BALANCE} XRP to transact.
 We recommend funding with a bit more to cover ongoing transaction fees.
@@ -385,6 +387,34 @@ We recommend funding with a bit more to cover ongoing transaction fees.
             await interaction.response.send_modal(
                 PFTMintNFTModal(
                     wallet=wallet, generic_pft_utilities=self.generic_pft_utilities
+                )
+            )
+
+        @self.tree.command(
+            name="pf_accept_offer",
+            description=f"Open form to accept an NFT offer",
+            guild=guild,
+        )
+        async def pf_accept_offer(interaction: Interaction):
+            user_id = interaction.user.id
+
+            # Check if the user has a stored seed
+            if user_id not in self.user_seeds:
+                await interaction.response.send_message(
+                    "You must store a seed using /store_seed before minting NFT.",
+                    ephemeral=True,
+                )
+                return
+
+            seed = self.user_seeds[user_id]
+            wallet = self.generic_pft_utilities.spawn_wallet_from_seed(seed=seed)
+
+            # Pass the user's wallet to the modal
+            await interaction.response.send_modal(
+                PFTAcceptNFTModal(
+                    wallet=wallet,
+                    generic_pft_utilities=self.generic_pft_utilities,
+                    network_config=self.network_config,
                 )
             )
 
