@@ -253,7 +253,8 @@ class XRPLNFTMinter:
             offer_id (str): ID of the offer to accept
 
         Returns:
-            dict: Transaction response
+            AcceptOfferSuccess | AcceptOfferError: Success or Error result from attempting to accept
+            an NFT offer.
         """
         try:
             wallet = Wallet.from_seed(seed=buyer_seed)
