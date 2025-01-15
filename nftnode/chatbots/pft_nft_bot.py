@@ -177,6 +177,7 @@ class NFTNodeDiscordBot(discord.Client):
 
 ### NFT Minting 
 1. /pf_mint_nft: Open a form to mint an NFT using {NFT_MINT_COST} PFT.
+2. /pf_accept_offer: Accept the free offer for your minted token using the offer id provided by /pf_mint_nft.
 
 Note: XRP wallets need {global_constants.MIN_XRP_BALANCE} XRP to transact.
 We recommend funding with a bit more to cover ongoing transaction fees.
