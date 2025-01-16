@@ -15,6 +15,7 @@ from discord.abc import Messageable
 from loguru import logger
 
 # nodetools imports
+from nodetools.configuration.configuration import RuntimeConfig
 import nodetools.configuration.constants as global_constants
 
 from nodetools.configuration.configure_logger import configure_logger
@@ -637,7 +638,7 @@ def main():
 
         discord_credential_key = (
             "discordbot_testnet_secret"
-            if nodetools.runtime_config.USE_TESTNET
+            if RuntimeConfig.USE_TESTNET
             else "discordbot_secret"
         )
         client.run(nodetools.get_credential(discord_credential_key))

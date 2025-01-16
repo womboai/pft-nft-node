@@ -18,7 +18,6 @@ from nftnode.nft_processing.constants import TaskType
 from nodetools.configuration.configuration import (
     NetworkConfig,
     NodeConfig,
-    RuntimeConfig,
 )
 from nodetools.protocols.generic_pft_utilities import GenericPFTUtilities
 from nodetools.protocols.credentials import CredentialManager
@@ -106,7 +105,10 @@ class NFTMintResponseGenerator(ResponseGenerator):
                 raise Exception("offer id from evaluating request was null")
 
             logger.debug(f"Constructing response with offer id: {offer_id}")
-            response_string = "offer id: " + offer_id
+            response_string = (
+                "Here is your free NFT offer id (used to accept the NFT into your wallet): "
+                + offer_id
+            )
 
             response_memo_type = derive_response_memo_type(
                 request_memo_type=request_tx.memo_type,
