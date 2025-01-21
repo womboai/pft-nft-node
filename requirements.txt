@@ -1,4 +1,4 @@
-git+https://github.com/postfiatorg/nodetools.git@e12214b2d4a67c28b149b66bf2a61da46e7b3e46#egg=nodetools
+git+https://github.com/postfiatorg/nodetools.git@74490e14be5d18508cf9deae39c35589bf388a3f#egg=nodetools
 requests
 discord
 loguru
