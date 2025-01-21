@@ -82,8 +82,9 @@ class NFTNodeDiscordBot(discord.Client):
             guild = Object(id=guild_id)
 
             # Prevents duplicate commands but also makes launch slow.
-            # self.tree.clear_commands(guild=guild)
-            # await self.tree.sync(guild=guild)
+            self.tree.clear_commands(guild=guild)
+        # prevents duplicate global commands
+        self.tree.clear_commands(guild=None)
 
         self.bg_task = self.loop.create_task(
             self.transaction_notifier(), name="DiscordBotTransactionNotifier"
