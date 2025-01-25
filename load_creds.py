@@ -1,5 +1,5 @@
 import json
-import os
+from nftnode.settings import environ
 
 import xrpl
 
@@ -7,22 +7,22 @@ from nodetools.utilities.credentials import CredentialManager, get_credentials_d
 
 
 def setup_node_auto():
-    network = os.environ["NETWORK"]
-    node_name = os.environ["NODE_NAME"]
+    network = environ.network
+    node_name = environ.node_name
     network_suffix = "_testnet" if network == "testnet" else ""
-    encryption_password = os.environ["ENCRYPTION_PASSWORD"]
+    encryption_password = environ.encryption_password
     credentials_dict = {
-        f"{node_name}{network_suffix}_postgresconnstring": os.environ["PG_CONN_STRING"],
-        f"{node_name}{network_suffix}__v1xrpsecret": os.environ["PFT_XRP_WALLET"],
-        "openrouter": os.environ["OPENROUTER_API_KEY"],
-        "openai": os.environ["OPENAI_API_KEY"],
-        f"discordbot{network_suffix}_secret": os.environ["DISCORD_BOT_TOKEN"],
+        f"{node_name}{network_suffix}_postgresconnstring": environ.pg_conn_string,
+        f"{node_name}{network_suffix}__v1xrpsecret": environ.pft_xrp_wallet,
+        "openrouter": environ.openrouter_api_key,
+        "openai": environ.openai_api_key,
+        f"discordbot{network_suffix}_secret": environ.discord_bot_token,
     }
     config = {
         "node_name": f"{node_name}{network_suffix}",
         "auto_handshake_addresses": [],
-        "discord_guild_id": os.environ["DISCORD_GUILD_ID"],
-        "discord_activity_channel_id": int(os.environ["DISCORD_ACTIVITY_CHANNEL_ID"]),
+        "discord_guild_id": environ.discord_guild_id,
+        "discord_activity_channel_id": environ.discord_activity_channel_id,
     }
 
     node_wallet = xrpl.wallet.Wallet.from_seed(

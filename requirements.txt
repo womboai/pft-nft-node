@@ -1,9 +1,10 @@
-git+https://github.com/postfiatorg/nodetools.git@74490e14be5d18508cf9deae39c35589bf388a3f#egg=nodetools
-requests
-discord
-loguru
-fal-client
-python-dotenv
+git+https://github.com/womboai/nodetools.git@fa786724e7b08dc49acf7d5937a82ea81a02dc9a#egg=nodetools
+requests==2.32.3
+discord.py==2.4.0
+loguru==0.7.3
+fal-client==0.5.7
 boto3==1.35.95
 pydantic==2.10.5
 pexpect==4.9.0
+pydantic-settings==2.7.1
+python-dotenv==1.0.1

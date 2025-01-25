@@ -5,8 +5,9 @@ from pathlib import Path
 from dataclasses import dataclass
 import traceback
 import sys
-from typing import List, Optional, Dict, Any
+from typing import List, Dict, Any
 import signal
+from nftnode.settings import environ
 
 # third party imports
 import discord
@@ -15,7 +16,11 @@ from discord.abc import Messageable
 from loguru import logger
 
 # nodetools imports
-from nodetools.configuration.configuration import RuntimeConfig
+from nodetools.configuration.configuration import (
+    XRPL_MAINNET,
+    XRPL_TESTNET,
+    RuntimeConfig,
+)
 import nodetools.configuration.constants as global_constants
 
 from nodetools.configuration.configure_logger import configure_logger
@@ -46,7 +51,6 @@ class AccountInfo:
     transaction_count: int = 0
     monthly_pft_avg: float = 0
     weekly_pft_avg: float = 0
-    google_doc_link: Optional[str] = None
 
 
 class NFTNodeDiscordBot(discord.Client):
@@ -78,7 +82,7 @@ class NFTNodeDiscordBot(discord.Client):
         guild: Object | None = None
         guild_id = self.node_config.discord_guild_id
 
-        if guild_id is not None and os.getenv("ENV") == "local":
+        if guild_id is not None and environ.env == "local":
             guild = Object(id=guild_id)
 
             # Prevents duplicate commands but also makes launch slow.
@@ -432,7 +436,7 @@ We recommend funding with a bit more to cover ongoing transaction fees.
 
         commands: List[app_commands.AppCommand] = []
 
-        if os.getenv("ENV") == "local":
+        if environ.env == "local":
             # SYNC GUILD SPECIFIC COMMANDS (faster to load)
             await self.tree.sync(guild=guild)
             logger.debug(f"ImageNodeDiscordBot.setup_hook: Guild Slash commands synced")
@@ -587,6 +591,13 @@ def main():
     )
 
     nodetools: None | ServiceContainer = None
+    if environ.env != "production":
+        XRPL_TESTNET.local_rpc_url = environ.rippled_rpc
+        # set custom rippleD ws url as highest priority
+        XRPL_TESTNET.websockets.insert(0, environ.rippled_ws)
+    else:
+        XRPL_MAINNET.local_rpc_url = environ.rippled_rpc
+        XRPL_MAINNET.websockets.insert(0, environ.rippled_ws)
 
     try:
         # Initialize performance monitor
